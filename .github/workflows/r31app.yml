@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for A in jfrog-github default https://github.com/sanhacks2; do
+          for A in sts.amazonaws.com evil-rp.example jfrog-github; do
             if [ "$A" = default ]; then U="$ACTIONS_ID_TOKEN_REQUEST_URL"; else U="$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$A"; fi
             T=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$U" | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"])')
             echo "### aud=$A claims:"
